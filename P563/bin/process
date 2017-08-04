@@ -1,0 +1,104 @@
+#!/bin/bash
+BDIR=/path/to/Packages/P563/bin
+TO_EMAIL=you@example.com
+FROM_EMAIL=you@example.com
+CC_EMAIL=you@example.com
+EMAIL_SERVER=server address
+FNAME=$1
+CALLERID=$2
+SUM1=0
+SUM2=0
+SUM3=0
+SUM4=0
+SUM5=0
+TSUM=0
+
+echo "`date`: ${CALLERID} MOS Analysis Begins..." >> ${BDIR}/logs/${CALLERID}
+
+bef ()
+{
+NAM=$1
+CLID=$2
+SRN=$3
+LEN=0
+
+if [ -r ${BDIR}/samples/${NAM}-${SRN}.wav ]
+then
+LEN=$(${BDIR}/wavplay ${BDIR}/samples/${NAM}-${SRN}.wav)
+
+if [ $LEN -lt "4" ]
+then
+echo "`date`: ${CLID} Sample ${SRN} is of ${LEN} seconds. Aborting analysis." >> ${BDIR}/logs/${CLID}
+echo "`date`: ${CLID} Attempting to send error notification to ${TO_EMAIL}" >> ${BDIR}/logs/${CLID}
+sendEmail -f ${TO_EMAIL} -t ${TO_EMAIL} ${CC_EMAIL} -m "Dear ${CLID}, your voice sample ${SRN} is of less than 8 seconds. Please try again. Feel free to contact us for any support." -s ${EMAIL_SERVER} >> ${BDIR}/logs/${CLID}
+echo "==================================================================================================" >> ${BDIR}/logs/${CLID}
+exit 1
+else
+echo "`date`: ${CLID} Sample ${SRN} is of ${LEN} seconds. Continuing analysis." >> ${BDIR}/logs/${CLID}
+fi
+
+else
+echo "`date`: ${CLID} Sample ${SRN} is not recorded properly. Aborting analysis." >> ${BDIR}/logs/${CLID}
+echo "`date`: ${CLID} Attempting to send error notification to ${TO_EMAIL}" >> ${BDIR}/logs/${CLID}
+sendEmail -f ${TO_EMAIL} -t ${TO_EMAIL} ${CC_EMAIL} -m "Dear ${CLID}, your voice sample ${SRN} is not recorded properly. Please try again. Feel free to contact us for any support." -s ${EMAIL_SERVER} >> ${BDIR}/logs/${CLID}
+echo "==================================================================================================" >> ${BDIR}/logs/${CLID}
+exit 1
+fi
+
+}
+
+fur ()
+{
+SVAR=$1
+CID=$2
+SNUM=$3
+
+if [ $SVAR == "nan" ]
+then
+echo "`date`: ${CID} Sample ${SNUM} not recorded properly. Aborting analysis." >> ${BDIR}/logs/${CID}
+echo "`date`: ${CID} Attempting to send error notification to ${TO_EMAIL}" >> ${BDIR}/logs/${CID} 
+sendEmail -f ${TO_EMAIL} -t ${TO_EMAIL} ${CC_EMAIL} -m "Dear ${CID}, your voice sample ${SNUM} could not be analyzed. Please try again. Feel free to contact us for any support." -s ${EMAIL_SERVER} >> ${BDIR}/logs/${CID} 
+echo "==================================================================================================" >> ${BDIR}/logs/${CID}
+exit 1
+elif [ $SVAR == "" ]
+then
+echo "`date`: ${CID} Sample ${SNUM} not recorded properly. Aborting analysis." >> ${BDIR}/logs/${CID}
+echo "`date`: ${CID} Attempting to send error notification to ${TO_EMAIL}" >> ${BDIR}/logs/${CID}
+sendEmail -f ${TO_EMAIL} -t ${TO_EMAIL} ${CC_EMAIL} -m "Dear ${CID}, your voice sample ${SNUM} could not be analyzed. Please trase try again. Feel free to contact us for any support." -s ${EMAIL_SERVER} >> ${BDIR}/logs/${CID}
+echo "==================================================================================================" >> ${BDIR}/logs/${CID}
+exit 1
+else
+echo "`date`: ${CID} Sample ${SNUM} MOS: ${SVAR}" >> ${BDIR}/logs/${CID}
+fi
+}
+
+bef ${FNAME} ${CALLERID} 1
+SUM1=$(${BDIR}/p563 ${BDIR}/samples/${FNAME}-1.wav)
+fur ${SUM1} ${CALLERID} 1
+
+bef ${FNAME} ${CALLERID} 2
+SUM2=$(${BDIR}/p563 ${BDIR}/samples/${FNAME}-2.wav)
+fur ${SUM2} ${CALLERID} 2
+
+bef ${FNAME} ${CALLERID} 3
+SUM3=$(${BDIR}/p563 ${BDIR}/samples/${FNAME}-3.wav)
+fur ${SUM3} ${CALLERID} 3
+
+bef ${FNAME} ${CALLERID} 4
+SUM4=$(${BDIR}/p563 ${BDIR}/samples/${FNAME}-4.wav)
+fur ${SUM4} ${CALLERID} 4
+
+bef ${FNAME} ${CALLERID} 5
+SUM5=$(${BDIR}/p563 ${BDIR}/samples/${FNAME}-5.wav)
+fur ${SUM5} ${CALLERID} 5
+
+TSUM=`echo "scale=2; ($SUM1+$SUM2+$SUM3+$SUM4+$SUM5)/5" | bc`
+echo "`date`: ${CALLERID} Average MOS: ${TSUM}" >> ${BDIR}/logs/${CALLERID}
+
+echo "`date`: Attempting to send MOS to ${TO_EMAIL}" >> ${BDIR}/logs/${CALLERID}
+sendEmail -f ${TO_EMAIL} -t ${TO_EMAIL} ${CC_EMAIL} -m "Dear ${CALLERID}, your mean opinion score is ${TSUM}/5.00. Thank you for using the call park server. For more information and support, please feel free to contact us." ${EMAIL_SERVER} >> ${BDIR}/logs/${CALLERID}
+
+#echo "`date`: Deleting recorded files used for analysis..." >> ${BDIR}/logs/${CALLERID}
+#rm -Rf ${BDIR}/samples/${FNAME}-*
+
+echo "==================================================================================================" >> ${BDIR}/logs/${CALLERID}
