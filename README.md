@@ -9,6 +9,4 @@ The system relies on Asterisk where extensions.conf needs to be placed. Other ut
 
 You can put the P563 folder anywhere you like (like your home directory) and update its path in extensions.conf. Configurations and customizations need to be done in extensions.conf and P563/bin/process script. 
 
-This system is not actively maintained so you are pretty much on your own. Good luck! :)
-
-https://imroz.io
+This system is not actively maintained.
